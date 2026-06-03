@@ -31,30 +31,28 @@ ID_USUARIO_ACTUAL = 1
 LIMITE_GRATUITO = 100
 
 # ==================== CONEXIÓN DE BASE DE DATOS Y MÉTRICAS ====================
-# 1. Aseguramos que existan las variables de sesión al arrancar la app
+# 1. Ajustamos los valores iniciales para que arranquen en modo Invitado/Gratis
 if "conectado" not in st.session_state:
     st.session_state["conectado"] = False
     st.session_state["usuario_id"] = None
-    st.session_state["usuario_nombre"] = "Usuario Pro"
-    st.session_state["usuario_plan"] = "Premium"
+    st.session_state["usuario_nombre"] = "Invitado"  # <-- Antes decía "Usuario Pro"
+    st.session_state["usuario_plan"] = "Gratis"       # <-- Antes decía "Premium"
 
 # Variables para controlar los límites
+# (Asegúrate de tener esta línea para que los invitados vean cuántos archivos les quedan)
 LIMITE_GRATUITO = 10
 archivos_procesados = 0
 
 # 2. Control dinámico de la sesión
 if st.session_state["conectado"] and st.session_state["usuario_id"] is not None:
-    # Si el usuario inició sesión, traemos sus datos en tiempo real
     try:
         import sqlite3
         conn = sqlite3.connect("thedatafixer.db")
         cursor = conn.cursor()
         
-        # Consultamos datos del perfil
         cursor.execute("SELECT nombre, tipo_plan FROM usuarios WHERE id_usuario = ?", (st.session_state["usuario_id"],))
         usuario_info = cursor.fetchone()
         
-        # Consultamos cuántos archivos lleva procesados este usuario real
         cursor.execute("SELECT COUNT(*) FROM historial_archivos WHERE id_usuario = ?", (st.session_state["usuario_id"],))
         archivos_procesados = cursor.fetchone()[0]
         
@@ -71,12 +69,12 @@ if st.session_state["conectado"] and st.session_state["usuario_id"] is not None:
         nombre_usuario = st.session_state["usuario_nombre"]
         plan_usuario = st.session_state["usuario_plan"]
 else:
-    # Si NO hay nadie conectado (o cerró sesión), valores limpios por defecto
-    nombre_usuario = st.session_state["usuario_nombre"]
-    plan_usuario = st.session_state["usuario_plan"]
-    archivos_procesados = 0
+    # <-- AJUSTE AQUÍ: Al cerrar sesión o estar desconectado, regresamos a lo básico
+    nombre_usuario = st.session_state["usuario_nombre"]  # Será "Invitado"
+    plan_usuario = st.session_state["usuario_plan"]    # Será "Gratis"
+    archivos_procesados = 0                              # Empieza en 0 archivos vistos
 
-# 3. Renderizado estético de métricas de usuario (Tus 3 columnas originales)
+# 3. Renderizado estético de métricas de usuario (Tus 3 columnas se mantienen igual)
 col_user, col_plan, col_usage = st.columns(3)
 
 with col_user:
@@ -86,7 +84,7 @@ with col_plan:
     st.metric(label="💎 Nivel de Plan", value=plan_usuario)
 
 with col_usage:
-    # Si es plan Gratis muestra el contador X/10, si es Premium muestra Ilimitado
+    # Como plan_usuario ahora será "Gratis" por defecto, pintará "0 / 10" automáticamente
     valor_uso = f"{archivos_procesados} / {LIMITE_GRATUITO}" if plan_usuario == "Gratis" else "✨ Ilimitado"
     st.metric(label="📊 Uso Mensual", value=valor_uso)
 
@@ -338,7 +336,7 @@ with tab_config:
         if st.button("❌ Cerrar Sesión", use_container_width=True):
             st.session_state["conectado"] = False
             st.session_state["usuario_id"] = None
-            st.session_state["usuario_nombre"] = "Usuario Pro"
-            st.session_state["usuario_plan"] = "Premium"
+            st.session_state["usuario_nombre"] = "Invitado"
+            st.session_state["usuario_plan"] = "Gratis"
             st.info("Sesion cerrada correctamente.")
             st.rerun()
