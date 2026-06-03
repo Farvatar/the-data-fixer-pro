@@ -168,7 +168,8 @@ with tab_limpieza:
                     # Registrar log en base de datos
                     nombre_salida = f"optimizando_{archivo_cargado.name}"
                     # Usamos el ID del usuario si está conectado, si no, le asignamos 0 (Invitado)
-                    id_registro = st.session_state.get("usuario_id", 0) if st.session_state.get("conectado") else 0
+                    usuario_id = st.session_state.get("usuario_id")
+                    id_registro = int(usuario_id) if usuario_id is not None else 0
                     conexion_sql.registrar_archivo(id_registro, nombre_salida, len(df_vertical), len(df_vertical.columns))
                 
                 st.balloons()
@@ -210,20 +211,22 @@ with tab_limpieza:
         except Exception as e:
             st.error(f"Ocurrió un inconveniente estructural en los datos: {e}")
 
-# ==================== PESTAÑA 2: HISTORIAL DE USO ====================
+# Reemplaza la lógica actual en tab_historial con esto:
 with tab_historial:
     st.header("🔄 Historial y Auditoría de Procesos")
     
-    # Aquí está la clave: usamos la sesión real
-    id_para_consultar = st.session_state.get("usuario_id", 0) 
+    usuario_id = st.session_state.get("usuario_id")
+    id_para_consultar = int(usuario_id) if usuario_id is not None else 0
     
     if st.button("🔄 Sincronizar y Actualizar Historial"):
         rows = obtener_historial_usuario(id_para_consultar)
+        
         if rows:
-            df_historial = pd.DataFrame(rows, columns=["Archivo", "Filas", "Cols", "Fecha"])
+            # Creamos el DataFrame correctamente
+            df_historial = pd.DataFrame(rows, columns=["Archivo", "Filas", "Columnas", "Fecha"])
             st.dataframe(df_historial, use_container_width=True)
         else:
-            st.info(f"No hay registros para el ID {id_para_consultar}.")
+            st.info(f"No hay registros procesados para el ID {id_para_consultar}.")
 
 # ==================== PESTAÑA 3: CONFIGURACIÓN ====================
 with tab_config:

@@ -52,6 +52,7 @@ def inicializar_tablas():
     conn.close()
 
 def registrar_archivo(id_usuario, nombre_archivo, filas, columnas):
+    id_usuario = int(id_usuario)
     conn = conectar_db()
     if conn is None: return False
     try:
@@ -74,18 +75,16 @@ def registrar_archivo(id_usuario, nombre_archivo, filas, columnas):
         conn.close()
 
 def obtener_historial_usuario(id_usuario):
-    """Recupera los últimos 10 archivos procesados por el usuario."""
     conn = conectar_db()
-    if conn is None:
-        return []
+    if conn is None: return []
     try:
         cursor = conn.cursor()
+        # Asegúrate de que estos nombres de columna sean los mismos que usas en el INSERT
         cursor.execute("""
-            SELECT nombre_archivo, filas_procesadas, columnas_procesadas, fecha_procesado 
+            SELECT nombre_archivo, filas, columnas, fecha_procesado 
             FROM historial_archivos 
             WHERE id_usuario = ? 
-            ORDER BY id_archivo DESC 
-            LIMIT 10
+            ORDER BY fecha_procesado DESC LIMIT 10
         """, (id_usuario,))
         return cursor.fetchall()
     except Exception as e:
@@ -93,6 +92,7 @@ def obtener_historial_usuario(id_usuario):
         return []
     finally:
         conn.close()
+        
 def registrar_nuevo_usuario(nombre, email, tipo_plan='Gratis'):
     """Registra un nuevo usuario en la base de datos si el email no existe."""
     conn = conectar_db()
