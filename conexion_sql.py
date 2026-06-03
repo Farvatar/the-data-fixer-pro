@@ -67,7 +67,7 @@ def registrar_archivo(id_usuario, nombre_archivo, filas, columnas):
         cursor.execute("""
             INSERT INTO historial_archivos (id_usuario, nombre_archivo, filas, columnas, fecha_procesado)
             VALUES (?, ?, ?, ?, ?)
-        """, (id_usuario, nombre_archivo, filas, columnas, fecha_actual))
+        """, (int(id_usuario), nombre_archivo, filas, columnas, fecha_actual))
         
         conn.commit()
         print(f"💾 Registro guardado con hora local: {nombre_archivo} a las {fecha_actual}")
@@ -156,3 +156,15 @@ def obtener_conteo_archivos(id_usuario):
         conn.close()
 # Inicializamos las tablas automáticamente al importar este módulo
 inicializar_tablas()
+
+def diagnostico_db():
+    conn = conectar_db()
+    cursor = conn.cursor()
+    # Verifica si la tabla existe y qué columnas tiene
+    cursor.execute("PRAGMA table_info(historial_archivos)")
+    columnas = cursor.fetchall()
+    # Cuenta cuántos registros totales hay sin filtrar por ID
+    cursor.execute("SELECT COUNT(*) FROM historial_archivos")
+    total = cursor.fetchone()[0]
+    conn.close()
+    return columnas, total

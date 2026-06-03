@@ -214,25 +214,16 @@ with tab_limpieza:
 with tab_historial:
     st.header("🔄 Historial y Auditoría de Procesos")
     
-    # Obtenemos el ID de sesión real. Si el usuario no ha iniciado sesión, será 0.
-    id_usuario_dinamico = st.session_state.get("usuario_id", 0)
+    # Aquí está la clave: usamos la sesión real
+    id_para_consultar = st.session_state.get("usuario_id", 0) 
     
     if st.button("🔄 Sincronizar y Actualizar Historial"):
-        # Llamamos a la función usando el ID real del usuario conectado
-        rows = obtener_historial_usuario(id_usuario_dinamico)
-        
+        rows = obtener_historial_usuario(id_para_consultar)
         if rows:
-            import pandas as pd
-            df_historial = pd.DataFrame(
-                rows, 
-                columns=["Archivo Destino", "Líneas Procesadas", "Columnas Procesadas", "Fecha de Proceso"]
-            )
+            df_historial = pd.DataFrame(rows, columns=["Archivo", "Filas", "Cols", "Fecha"])
             st.dataframe(df_historial, use_container_width=True)
-            
-            st.subheader("📈 Volumen de datos corregidos")
-            st.bar_chart(data=df_historial, x="Archivo Destino", y="Líneas Procesadas")
         else:
-            st.info("No se registran transacciones previas en este perfil.")
+            st.info(f"No hay registros para el ID {id_para_consultar}.")
 
 # ==================== PESTAÑA 3: CONFIGURACIÓN ====================
 with tab_config:
