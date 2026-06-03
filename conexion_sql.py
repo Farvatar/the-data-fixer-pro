@@ -2,15 +2,16 @@ from datetime import datetime, timedelta
 import sqlite3
 import os
 
-DB_NAME = "thedatafixer.db"
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DB_NAME = os.path.join(BASE_DIR, "thedatafixer.db")
 
 def conectar_db():
-    """Establece conexión con la base de datos SQLite (la crea si no existe)"""
     try:
-        conexion = sqlite3.connect(DB_NAME)
-        return conexion
+        # Creamos la conexión usando la ruta absoluta definida arriba
+        conn = sqlite3.connect(DB_NAME)
+        return conn
     except Exception as e:
-        print(f"❌ Error al conectar a SQLite: {e}")
+        print(f"Error al conectar con la base de datos: {e}")
         return None
 
 def inicializar_tablas():

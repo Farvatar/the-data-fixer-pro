@@ -39,26 +39,22 @@ if "conectado" not in st.session_state:
 
 LIMITE_GRATUITO = 10
 
-# Asignamos valores basados estrictamente en el estado de la sesión
-if st.session_state["conectado"]:
-    nombre_usuario = st.session_state["usuario_nombre"]
-    plan_usuario = st.session_state["usuario_plan"]
-    # Llamamos a la función externa de forma segura
-    archivos_procesados = obtener_conteo_archivos(st.session_state["usuario_id"])
-else:
-    nombre_usuario = "Invitado"
-    plan_usuario = "Gratis"
-    archivos_procesados = 0
+# 1. Definimos el ID a consultar
+id_para_contar = st.session_state.get("usuario_id", 0)
 
-# Renderizado de las 3 columnas de métricas
+# 2. Obtenemos el nombre y plan de la sesión
+nombre_usuario = st.session_state["usuario_nombre"]
+plan_usuario = st.session_state["usuario_plan"]
+
+# 3. Consultamos el conteo real usando nuestra función del conexion_sql.py
+archivos_procesados = obtener_conteo_archivos(id_para_contar)
+
+# Renderizado de métricas (esto se queda igual, pero ahora 'archivos_procesados' tendrá el valor real)
 col_user, col_plan, col_usage = st.columns(3)
-
 with col_user:
     st.metric(label="👤 Cuenta", value=nombre_usuario)
-
 with col_plan:
     st.metric(label="💎 Nivel de Plan", value=plan_usuario)
-
 with col_usage:
     valor_uso = f"{archivos_procesados} / {LIMITE_GRATUITO}" if plan_usuario == "Gratis" else "✨ Ilimitado"
     st.metric(label="📊 Uso Mensual", value=valor_uso)
@@ -218,21 +214,15 @@ with tab_limpieza:
 with tab_historial:
     st.header("🔄 Historial y Auditoría de Procesos")
     
-    # --- BORRA ESTA LÍNEA: ID_USUARIO_ACTUAL = 1 ---
+    # Obtenemos el ID de sesión real. Si el usuario no ha iniciado sesión, será 0.
+    id_usuario_dinamico = st.session_state.get("usuario_id", 0)
     
-    # 1. Determinamos quién está consultando el historial de forma dinámica
-    id_para_consultar = st.session_state["usuario_id"] if st.session_state["conectado"] else 0
-    
-    # 2. El botón que ya tenías
     if st.button("🔄 Sincronizar y Actualizar Historial"):
-        
-        # 3. Llamamos usando la nueva variable 'id_para_consultar'
-        rows = obtener_historial_usuario(id_para_consultar)
+        # Llamamos a la función usando el ID real del usuario conectado
+        rows = obtener_historial_usuario(id_usuario_dinamico)
         
         if rows:
             import pandas as pd
-            
-            # Convertimos a DataFrame para mostrarlo en la interfaz
             df_historial = pd.DataFrame(
                 rows, 
                 columns=["Archivo Destino", "Líneas Procesadas", "Columnas Procesadas", "Fecha de Proceso"]
