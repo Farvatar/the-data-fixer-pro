@@ -1,3 +1,4 @@
+from conexion_sql import obtener_historial_usuario, registrar_archivo
 import streamlit as st
 import pandas as pd
 import conexion_sql
@@ -195,19 +196,30 @@ with tab_limpieza:
 
 # ==================== PESTAÑA 2: HISTORIAL DE USO ====================
 with tab_historial:
-    st.header("🗄️ Historial y Auditoría de Procesos")
+    st.header("🔄 Historial y Auditoría de Procesos")
     
+    # 1. ID temporal de usuario (mientras no implementemos el login real)
+    ID_USUARIO_ACTUAL = 1 
+    
+    # 2. El botón que ya tenías programado
     if st.button("🔄 Sincronizar y Actualizar Historial"):
-        conn = sqlite3.connect("thedatafixer.db")
-        cursor = conn.cursor()
-        query = "SELECT nombre_archivo, filas_procesadas, columnas_procesadas, fecha_procesado FROM historial_archivos WHERE id_usuario = ? ORDER BY fecha_procesado DESC;"
-        cursor.execute(query, (ID_USUARIO_ACTUAL,))
-        rows = cursor.fetchall()
-        conn.close()
+        
+        # Llamamos directamente a la función de tu archivo conexion_sql.py
+        rows = obtener_historial_usuario(ID_USUARIO_ACTUAL)
         
         if rows:
-            df_historial = pd.DataFrame(rows, columns=["Archivo Destino", "Líneas Logradas", "Columnas", "Fecha de Auditoría"])
+            import pandas as pd
+            
+            # Convertimos a DataFrame para mostrarlo en la interfaz
+            df_historial = pd.DataFrame(
+                rows, 
+                columns=["Archivo Destino", "Líneas Procesadas", "Columnas Procesadas", "Fecha de Proceso"]
+            )
             st.dataframe(df_historial, use_container_width=True)
+            
+            # 📊 BONUS: Un gráfico de barras interactivo para que explote visualmente
+            st.subheader("📈 Volumen de datos corregidos")
+            st.bar_chart(data=df_historial, x="Archivo Destino", y="Líneas Procesadas")
         else:
             st.info("No se registran transacciones previas en este perfil.")
 
