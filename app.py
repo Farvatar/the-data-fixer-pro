@@ -294,6 +294,16 @@ with tab_config:
             # Usamos el ID dinámico del usuario logueado para limpiar sus datos
             cursor.execute("UPDATE usuarios SET tipo_plan = 'Gratis' WHERE id_usuario = ?", (st.session_state["usuario_id"],))
             cursor.execute("DELETE FROM historial_archivos WHERE id_usuario = ?", (st.session_state["usuario_id"],))
+            cursor.execute("DROP TABLE IF EXISTS historial_archivos")
+            cursor.execute("""
+                CREATE TABLE historial_archivos (
+                    id_usuario INTEGER,
+                    nombre_archivo TEXT,
+                    filas INTEGER,
+                    columnas INTEGER,
+                    fecha_procesado TEXT
+                )
+            """)
             conn.commit()
             conn.close()
             st.success("🔄 Entorno reseteado con éxito.")
