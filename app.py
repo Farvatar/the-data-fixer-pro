@@ -300,11 +300,20 @@ with tab_config:
             
             if st.button("Registrarme", use_container_width=True):
                 if nuevo_nombre and nuevo_email:
-                    exito, mensaje = registrar_nuevo_usuario(nuevo_nombre, nuevo_email, plan_seleccionado)
-                    if exito:
-                        st.success(mensaje)
+                    
+                    # 🔍 VALIDACIÓN CON REGEX: Verifica si tiene estructura de correo válida
+                    import re
+                    patron_correo = r'^[\w\.-]+@[\w\.-]+\.\w+$'
+                    
+                    if not re.match(patron_correo, nuevo_email):
+                        st.error("❌ Por favor, ingresa un correo electrónico válido (ejemplo@correo.com).")
                     else:
-                        st.error(mensaje)
+                        # Si el correo es válido, procedemos a registrar en la DB
+                        exito, mensaje = registrar_nuevo_usuario(nuevo_nombre, nuevo_email, plan_seleccionado)
+                        if exito:
+                            st.success(mensaje)
+                        else:
+                            st.error(mensaje)
                 else:
                     st.warning("Por favor completa todos los campos.")
                     
