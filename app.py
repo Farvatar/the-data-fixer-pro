@@ -1,10 +1,17 @@
-from conexion_sql import obtener_historial_usuario, registrar_archivo
+from conexion_sql import obtener_historial_usuario, registrar_archivo, registrar_nuevo_usuario, verificar_login_usuario
 import streamlit as st
 import pandas as pd
 import conexion_sql
 import csv
 import sqlite3
 import io
+
+# Inicializar variables globales de sesión si no existen al arrancar la app
+if "conectado" not in st.session_state:
+    st.session_state["conectado"] = False
+    st.session_state["usuario_id"] = None
+    st.session_state["usuario_nombre"] = "Usuario Pro"
+    st.session_state["usuario_plan"] = "Premium"
 
 # Configuración avanzada de la página
 st.set_page_config(
@@ -32,8 +39,8 @@ if usuario_info is not None:
     nombre_usuario = usuario_info[0]
     plan_usuario = usuario_info[1]
 else:
-    nombre_usuario = "Usuario Pro"
-    plan_usuario = "Premium"
+    nombre_usuario = st.write(f"### {st.session_state['usuario_nombre']}")
+    plan_usuario = st.write(f"### {st.session_state['usuario_plan']}")
 
 cursor.execute("SELECT COUNT(*) FROM historial_archivos WHERE id_usuario = ?;", (ID_USUARIO_ACTUAL,))
 archivos_procesados = cursor.fetchone()[0]
@@ -225,12 +232,74 @@ with tab_historial:
 
 # ==================== PESTAÑA 3: CONFIGURACIÓN ====================
 with tab_config:
-    st.header("🛠️ Panel de Control Técnico")
-    if st.button("⚠️ Reiniciar Entorno de Pruebas"):
-        conn = sqlite3.connect("thedatafixer.db")
-        cursor = conn.cursor()
-        cursor.execute("UPDATE usuarios SET tipo_plan = 'Gratis' WHERE id_usuario = ?;", (ID_USUARIO_ACTUAL,))
-        cursor.execute("DELETE FROM historial_archivos WHERE id_usuario = ?;", (ID_USUARIO_ACTUAL,))
-        conn.commit()
-        conn.close()
-        st.success("🔄 Entorno reseteado con éxito.")
+    st.header("🔧 Panel de Control Técnico")
+    
+    if not st.session_state["conectado"]:
+        st.subheader("🔑 Acceso al Sistema")
+        
+        # Pestañas internas para Login y Registro
+        tab_login, tab_registro = st.tabs(["Ingresar", "Crear Cuenta"])
+        
+        with tab_login:
+            email_login = st.text_input("Correo Electrónico", key="login_email")
+            if st.button("Iniciar Sesión", use_container_width=True):
+                if email_login:
+                    usuario = verificar_login_usuario(email_login)
+                    if usuario:
+                        st.session_state["conectado"] = True
+                        st.session_state["usuario_id"] = usuario[0]
+                        st.session_state["usuario_nombre"] = usuario[1]
+                        st.session_state["usuario_plan"] = usuario[3]
+                        st.success(f"¡Bienvenido, {usuario[1]}!")
+                        st.rerun()  # Recarga la interfaz para actualizar las tarjetas de arriba
+                    else:
+                        st.error("El correo no está registrado. Crea una cuenta primero.")
+                else:
+                    st.warning("Por favor ingresa tu correo.")
+                    
+        with tab_registro:
+            nuevo_nombre = st.text_input("Nombre Completo", key="reg_nombre")
+            nuevo_email = st.text_input("Correo Electrónico", key="reg_email")
+            plan_seleccionado = st.selectbox("Selecciona tu Plan", ["Gratis", "Premium", "Enterprise"])
+            
+            if st.button("Registrarme", use_container_width=True):
+                if nuevo_nombre and nuevo_email:
+                    exito, mensaje = registrar_nuevo_usuario(nuevo_nombre, nuevo_email, plan_seleccionado)
+                    if exito:
+                        st.success(mensaje)
+                    else:
+                        st.error(mensaje)
+                else:
+                    st.warning("Por favor completa todos los campos.")
+                    
+    else:
+        # Perfil del usuario activo
+        st.subheader("👤 Perfil de Ingeniero Activo")
+        col1, col2 = st.columns(2)
+        with col1:
+            st.write(f"**Nombre:** {st.session_state['usuario_nombre']}")
+            st.write(f"**ID de Cuenta:** #{st.session_state['usuario_id']}")
+        with col2:
+            st.write(f"**Nivel de Plan:** {st.session_state['usuario_plan']}")
+            
+        st.write("---")
+        
+        # AQUÍ CONVIVE TU LÓGICA ORIGINAL DE PRUEBAS
+        st.subheader("⚡ Herramientas de Desarrollo")
+        if st.button("⚠️ Reiniciar Entorno de Pruebas", use_container_width=True):
+            conn = sqlite3.connect("thedatafixer.db")
+            cursor = conn.cursor()
+            # Usamos el ID dinámico del usuario logueado para limpiar sus datos
+            cursor.execute("UPDATE usuarios SET tipo_plan = 'Gratis' WHERE id_usuario = ?", (st.session_state["usuario_id"],))
+            cursor.execute("DELETE FROM historial_archivos WHERE id_usuario = ?", (st.session_state["usuario_id"],))
+            conn.commit()
+            conn.close()
+            st.success("🔄 Entorno reseteado con éxito.")
+            st.rerun()
+            
+        if st.button("❌ Cerrar Sesión", use_container_width=True):
+            st.session_state["conectado"] = False
+            st.session_state["usuario_id"] = None
+            st.session_state["usuario_nombre"] = "Usuario Pro"
+            st.session_state["usuario_plan"] = "Premium"
+            st.rerun()
