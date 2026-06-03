@@ -168,7 +168,7 @@ with tab_limpieza:
                     # Registrar log en base de datos
                     nombre_salida = f"optimizando_{archivo_cargado.name}"
                     # Usamos el ID del usuario si está conectado, si no, le asignamos 0 (Invitado)
-                    id_registro = st.session_state["usuario_id"] if st.session_state["conectado"] else 0
+                    id_registro = st.session_state.get("usuario_id", 0) if st.session_state.get("conectado") else 0
                     conexion_sql.registrar_archivo(id_registro, nombre_salida, len(df_vertical), len(df_vertical.columns))
                 
                 st.balloons()
