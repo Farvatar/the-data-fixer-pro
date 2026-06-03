@@ -89,5 +89,46 @@ def obtener_historial_usuario(id_usuario):
         return []
     finally:
         conn.close()
+def registrar_nuevo_usuario(nombre, email, tipo_plan='Gratis'):
+    """Registra un nuevo usuario en la base de datos si el email no existe."""
+    conn = conectar_db()
+    if conn is None:
+        return False, "Error de conexión a la base de datos."
+    try:
+        cursor = conn.cursor()
+        cursor.execute("SELECT id_usuario FROM usuarios WHERE email = ?", (email,))
+        if cursor.fetchone():
+            return False, "El correo electrónico ya está registrado."
+            
+        cursor.execute("""
+            INSERT INTO usuarios (nombre, email, tipo_plan)
+            VALUES (?, ?, ?)
+        """, (nombre, email, tipo_plan))
+        conn.commit()
+        return True, "¡Usuario registrado con éxito!"
+    except Exception as e:
+        print(f"Error al registrar usuario: {e}")
+        return False, f"Error en el sistema: {e}"
+    finally:
+        conn.close()
+
+def verificar_login_usuario(email):
+    """Verifica si un usuario existe por su email y retorna sus datos."""
+    conn = conectar_db()
+    if conn is None:
+        return None
+    try:
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT id_usuario, nombre, email, tipo_plan 
+            FROM usuarios 
+            WHERE email = ?
+        """, (email,))
+        return cursor.fetchone()
+    except Exception as e:
+        print(f"Error al verificar login: {e}")
+        return None
+    finally:
+        conn.close()
 # Inicializamos las tablas automáticamente al importar este módulo
 inicializar_tablas()
