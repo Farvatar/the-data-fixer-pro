@@ -69,5 +69,25 @@ def registrar_archivo(id_usuario, nombre_archivo, filas, columnas):
     finally:
         conn.close()
 
+def obtener_historial_usuario(id_usuario):
+    """Recupera los últimos 10 archivos procesados por el usuario."""
+    conn = conectar_db()
+    if conn is None:
+        return []
+    try:
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT nombre_archivo, filas_procesadas, columnas_procesadas, fecha_procesado 
+            FROM historial_archivos 
+            WHERE id_usuario = ? 
+            ORDER BY id_archivo DESC 
+            LIMIT 10
+        """, (id_usuario,))
+        return cursor.fetchall()
+    except Exception as e:
+        print(f"Error al obtener historial: {e}")
+        return []
+    finally:
+        conn.close()
 # Inicializamos las tablas automáticamente al importar este módulo
 inicializar_tablas()
