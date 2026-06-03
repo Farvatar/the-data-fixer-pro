@@ -138,5 +138,20 @@ def verificar_login_usuario(email):
         return None
     finally:
         conn.close()
+def obtener_conteo_archivos(id_usuario):
+    """Devuelve la cantidad de archivos procesados por un usuario."""
+    conn = conectar_db()
+    if conn is None:
+        return 0
+    try:
+        cursor = conn.cursor()
+        cursor.execute("SELECT COUNT(*) FROM historial_archivos WHERE id_usuario = ?", (id_usuario,))
+        resultado = cursor.fetchone()
+        return resultado[0] if resultado else 0
+    except Exception as e:
+        print(f"Error al contar archivos: {e}")
+        return 0
+    finally:
+        conn.close()
 # Inicializamos las tablas automáticamente al importar este módulo
 inicializar_tablas()

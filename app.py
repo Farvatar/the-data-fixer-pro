@@ -1,4 +1,4 @@
-from conexion_sql import obtener_historial_usuario, registrar_archivo, registrar_nuevo_usuario, verificar_login_usuario
+from conexion_sql import obtener_historial_usuario, registrar_archivo, registrar_nuevo_usuario, verificar_login_usuario, obtener_conteo_archivos
 import streamlit as st
 import pandas as pd
 import conexion_sql
@@ -38,37 +38,19 @@ if "conectado" not in st.session_state:
     st.session_state["usuario_plan"] = "Gratis"
 
 LIMITE_GRATUITO = 10
-archivos_procesados = 0
 
-if st.session_state["conectado"] and st.session_state["usuario_id"] is not None:
-    try:
-        import sqlite3
-        conn = sqlite3.connect("thedatafixer.db")
-        cursor = conn.cursor()
-        
-        cursor.execute("SELECT nombre, tipo_plan FROM usuarios WHERE id_usuario = ?", (st.session_state["usuario_id"],))
-        usuario_info = cursor.fetchone()
-        
-        cursor.execute("SELECT COUNT(*) FROM historial_archivos WHERE id_usuario = ?", (st.session_state["usuario_id"],))
-        archivos_procesados = cursor.fetchone()[0]
-        
-        conn.close()
-        
-        if usuario_info:
-            nombre_usuario = usuario_info[0]
-            plan_usuario = usuario_info[1]
-        else:
-            nombre_usuario = st.session_state["usuario_nombre"]
-            plan_usuario = st.session_state["usuario_plan"]
-            
-    except Exception as e:
-        nombre_usuario = st.session_state["usuario_nombre"]
-        plan_usuario = st.session_state["usuario_plan"]
-else:
+# Asignamos valores basados estrictamente en el estado de la sesión
+if st.session_state["conectado"]:
     nombre_usuario = st.session_state["usuario_nombre"]
     plan_usuario = st.session_state["usuario_plan"]
+    # Llamamos a la función externa de forma segura
+    archivos_procesados = obtener_conteo_archivos(st.session_state["usuario_id"])
+else:
+    nombre_usuario = "Invitado"
+    plan_usuario = "Gratis"
     archivos_procesados = 0
 
+# Renderizado de las 3 columnas de métricas
 col_user, col_plan, col_usage = st.columns(3)
 
 with col_user:
