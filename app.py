@@ -27,8 +27,12 @@ conn = sqlite3.connect("thedatafixer.db")
 cursor = conn.cursor()
 cursor.execute("SELECT nombre, tipo_plan FROM usuarios WHERE id_usuario = ?;", (ID_USUARIO_ACTUAL,))
 usuario_info = cursor.fetchone()
-nombre_usuario = usuario_info[0]
-plan_usuario = usuario_info[1]
+if usuario_info is not None:
+    nombre_usuario = usuario_info[0]
+    plan_usuario = usuario_info[1]
+else:
+    nombre_usuario = "Usuario Pro"
+    plan_usuario = "Premium"
 
 cursor.execute("SELECT COUNT(*) FROM historial_archivos WHERE id_usuario = ?;", (ID_USUARIO_ACTUAL,))
 archivos_procesados = cursor.fetchone()[0]
