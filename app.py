@@ -31,19 +31,15 @@ ID_USUARIO_ACTUAL = 1
 LIMITE_GRATUITO = 100
 
 # ==================== CONEXIÓN DE BASE DE DATOS Y MÉTRICAS ====================
-# 1. Ajustamos los valores iniciales para que arranquen en modo Invitado/Gratis
 if "conectado" not in st.session_state:
     st.session_state["conectado"] = False
     st.session_state["usuario_id"] = None
-    st.session_state["usuario_nombre"] = "Invitado"  # <-- Antes decía "Usuario Pro"
-    st.session_state["usuario_plan"] = "Gratis"       # <-- Antes decía "Premium"
+    st.session_state["usuario_nombre"] = "Invitado"
+    st.session_state["usuario_plan"] = "Gratis"
 
-# Variables para controlar los límites
-# (Asegúrate de tener esta línea para que los invitados vean cuántos archivos les quedan)
 LIMITE_GRATUITO = 10
 archivos_procesados = 0
 
-# 2. Control dinámico de la sesión
 if st.session_state["conectado"] and st.session_state["usuario_id"] is not None:
     try:
         import sqlite3
@@ -69,12 +65,10 @@ if st.session_state["conectado"] and st.session_state["usuario_id"] is not None:
         nombre_usuario = st.session_state["usuario_nombre"]
         plan_usuario = st.session_state["usuario_plan"]
 else:
-    # <-- AJUSTE AQUÍ: Al cerrar sesión o estar desconectado, regresamos a lo básico
-    nombre_usuario = st.session_state["usuario_nombre"]  # Será "Invitado"
-    plan_usuario = st.session_state["usuario_plan"]    # Será "Gratis"
-    archivos_procesados = 0                              # Empieza en 0 archivos vistos
+    nombre_usuario = st.session_state["usuario_nombre"]
+    plan_usuario = st.session_state["usuario_plan"]
+    archivos_procesados = 0
 
-# 3. Renderizado estético de métricas de usuario (Tus 3 columnas se mantienen igual)
 col_user, col_plan, col_usage = st.columns(3)
 
 with col_user:
@@ -84,7 +78,6 @@ with col_plan:
     st.metric(label="💎 Nivel de Plan", value=plan_usuario)
 
 with col_usage:
-    # Como plan_usuario ahora será "Gratis" por defecto, pintará "0 / 10" automáticamente
     valor_uso = f"{archivos_procesados} / {LIMITE_GRATUITO}" if plan_usuario == "Gratis" else "✨ Ilimitado"
     st.metric(label="📊 Uso Mensual", value=valor_uso)
 
@@ -300,15 +293,13 @@ with tab_config:
             
             if st.button("Registrarme", use_container_width=True):
                 if nuevo_nombre and nuevo_email:
-                    
-                    # 🔍 VALIDACIÓN CON REGEX: Verifica si tiene estructura de correo válida
+                    # Validación de formato de correo electrónica integrada de forma segura
                     import re
                     patron_correo = r'^[\w\.-]+@[\w\.-]+\.\w+$'
                     
                     if not re.match(patron_correo, nuevo_email):
                         st.error("❌ Por favor, ingresa un correo electrónico válido (ejemplo@correo.com).")
                     else:
-                        # Si el correo es válido, procedemos a registrar en la DB
                         exito, mensaje = registrar_nuevo_usuario(nuevo_nombre, nuevo_email, plan_seleccionado)
                         if exito:
                             st.success(mensaje)
