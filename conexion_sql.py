@@ -56,23 +56,19 @@ def registrar_archivo(id_usuario, nombre_archivo, filas, columnas):
     if conn is None: return False
     try:
         cursor = conn.cursor()
-        
-        # FORZAMOS que id_usuario sea 0 si es None o inválido
+        # Aseguramos que id_usuario sea un entero. Si falla, el valor por defecto es 0.
         id_seguro = int(id_usuario) if id_usuario is not None else 0
         
-        # Ajuste de hora (lo que ya tienes, está bien)
-        hora_colombia = datetime.utcnow() - timedelta(hours=5)
-        fecha_actual = hora_colombia.strftime('%Y-%m-%d %H:%M:%S')
-
+        # INSERT directo
         cursor.execute("""
             INSERT INTO historial_archivos (id_usuario, nombre_archivo, filas, columnas, fecha_procesado)
-            VALUES (?, ?, ?, ?, ?)
-        """, (id_seguro, nombre_archivo, filas, columnas, fecha_actual))
+            VALUES (?, ?, ?, ?, datetime('now', 'localtime'))
+        """, (id_seguro, nombre_archivo, filas, columnas))
         
         conn.commit()
         return True
     except Exception as e:
-        print(f"Error al registrar archivo: {e}")
+        print(f"DEBUG: Error en insert: {e}")
         return False
     finally:
         conn.close()

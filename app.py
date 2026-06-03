@@ -288,13 +288,12 @@ with tab_config:
         
         # AQUÍ CONVIVE TU LÓGICA ORIGINAL DE PRUEBAS
         st.subheader("⚡ Herramientas de Desarrollo")
-        if st.button("⚠️ Reiniciar Entorno de Pruebas", use_container_width=True):
+        if st.button("⚠️ REINICIAR TODO Y CREAR TABLA LIMPIA"):
             conn = sqlite3.connect("thedatafixer.db")
             cursor = conn.cursor()
-            # Usamos el ID dinámico del usuario logueado para limpiar sus datos
-            cursor.execute("UPDATE usuarios SET tipo_plan = 'Gratis' WHERE id_usuario = ?", (st.session_state["usuario_id"],))
-            cursor.execute("DELETE FROM historial_archivos WHERE id_usuario = ?", (st.session_state["usuario_id"],))
+            # Destruye todo
             cursor.execute("DROP TABLE IF EXISTS historial_archivos")
+            # Crea la tabla de nuevo
             cursor.execute("""
                 CREATE TABLE historial_archivos (
                     id_usuario INTEGER,
@@ -306,7 +305,7 @@ with tab_config:
             """)
             conn.commit()
             conn.close()
-            st.success("🔄 Entorno reseteado con éxito.")
+            st.success("Base de datos recreada. Prueba procesar ahora.")
             st.rerun()
             
         if st.button("❌ Cerrar Sesión", use_container_width=True):
