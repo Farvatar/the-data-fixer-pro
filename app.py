@@ -30,27 +30,65 @@ st.caption("La plataforma inteligente para estructurar, limpiar y analizar tus b
 ID_USUARIO_ACTUAL = 1
 LIMITE_GRATUITO = 100
 
-# --- CONEXIÓN DE BASE DE DATOS Y MÉTRICAS ---
-conn = sqlite3.connect("thedatafixer.db")
-cursor = conn.cursor()
-cursor.execute("SELECT nombre, tipo_plan FROM usuarios WHERE id_usuario = ?;", (ID_USUARIO_ACTUAL,))
-usuario_info = cursor.fetchone()
-if usuario_info is not None:
-    nombre_usuario = usuario_info[0]
-    plan_usuario = usuario_info[1]
+# ==================== CONEXIÓN DE BASE DE DATOS Y MÉTRICAS ====================
+# 1. Aseguramos que existan las variables de sesión al arrancar la app
+if "conectado" not in st.session_state:
+    st.session_state["conectado"] = False
+    st.session_state["usuario_id"] = None
+    st.session_state["usuario_nombre"] = "Usuario Pro"
+    st.session_state["usuario_plan"] = "Premium"
+
+# Variables para controlar los límites
+LIMITE_GRATUITO = 10
+archivos_procesados = 0
+
+# 2. Control dinámico de la sesión
+if st.session_state["conectado"] and st.session_state["usuario_id"] is not None:
+    # Si el usuario inició sesión, traemos sus datos en tiempo real
+    try:
+        import sqlite3
+        conn = sqlite3.connect("thedatafixer.db")
+        cursor = conn.cursor()
+        
+        # Consultamos datos del perfil
+        cursor.execute("SELECT nombre, tipo_plan FROM usuarios WHERE id_usuario = ?", (st.session_state["usuario_id"],))
+        usuario_info = cursor.fetchone()
+        
+        # Consultamos cuántos archivos lleva procesados este usuario real
+        cursor.execute("SELECT COUNT(*) FROM historial_archivos WHERE id_usuario = ?", (st.session_state["usuario_id"],))
+        archivos_procesados = cursor.fetchone()[0]
+        
+        conn.close()
+        
+        if usuario_info:
+            nombre_usuario = usuario_info[0]
+            plan_usuario = usuario_info[1]
+        else:
+            nombre_usuario = st.session_state["usuario_nombre"]
+            plan_usuario = st.session_state["usuario_plan"]
+            
+    except Exception as e:
+        nombre_usuario = st.session_state["usuario_nombre"]
+        plan_usuario = st.session_state["usuario_plan"]
 else:
-    nombre_usuario = st.write(f"### {st.session_state['usuario_nombre']}")
-    plan_usuario = st.write(f"### {st.session_state['usuario_plan']}")
+    # Si NO hay nadie conectado (o cerró sesión), valores limpios por defecto
+    nombre_usuario = st.session_state["usuario_nombre"]
+    plan_usuario = st.session_state["usuario_plan"]
+    archivos_procesados = 0
 
-cursor.execute("SELECT COUNT(*) FROM historial_archivos WHERE id_usuario = ?;", (ID_USUARIO_ACTUAL,))
-archivos_procesados = cursor.fetchone()[0]
-conn.close()
-
-# Renderizado estético de métricas de usuario
+# 3. Renderizado estético de métricas de usuario (Tus 3 columnas originales)
 col_user, col_plan, col_usage = st.columns(3)
-with col_user: st.metric(label="👤 Cuenta", value=nombre_usuario)
-with col_plan: st.metric(label="💎 Nivel de Plan", value=plan_usuario)
-with col_usage: st.metric(label="📊 Uso Mensual", value=f"{archivos_procesados} / {LIMITE_GRATUITO}" if plan_usuario == "Gratis" else "✨ Ilimitado")
+
+with col_user:
+    st.metric(label="👤 Cuenta", value=nombre_usuario)
+
+with col_plan:
+    st.metric(label="💎 Nivel de Plan", value=plan_usuario)
+
+with col_usage:
+    # Si es plan Gratis muestra el contador X/10, si es Premium muestra Ilimitado
+    valor_uso = f"{archivos_procesados} / {LIMITE_GRATUITO}" if plan_usuario == "Gratis" else "✨ Ilimitado"
+    st.metric(label="📊 Uso Mensual", value=valor_uso)
 
 st.markdown("---")
 
@@ -75,7 +113,7 @@ with tab_limpieza:
             if st.button("🚀 Convertirme en Miembro Premium"):
                 conn = sqlite3.connect("thedatafixer.db")
                 cursor = conn.cursor()
-                cursor.execute("UPDATE usuarios SET tipo_plan = 'Premium' WHERE id_usuario = ?;", (ID_USUARIO_ACTUAL,))
+                cursor.execute("UPDATE usuarios SET tipo_plan = 'Premium' WHERE id_usuario = ?;", (st.session_state["usuario_id"],))
                 conn.commit()
                 conn.close()
                 st.success("🎉 ¡Excelente elección! Tu cuenta ha sido promovida a Premium. Refresca la página para comenzar.")
@@ -302,4 +340,5 @@ with tab_config:
             st.session_state["usuario_id"] = None
             st.session_state["usuario_nombre"] = "Usuario Pro"
             st.session_state["usuario_plan"] = "Premium"
+            st.info("Sesion cerrada correctamente.")
             st.rerun()
