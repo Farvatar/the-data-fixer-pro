@@ -171,7 +171,9 @@ with tab_limpieza:
                     
                     # Registrar log en base de datos
                     nombre_salida = f"optimizando_{archivo_cargado.name}"
-                    conexion_sql.registrar_archivo(ID_USUARIO_ACTUAL, nombre_salida, len(df_vertical), len(df_vertical.columns))
+                    # Usamos el ID del usuario si está conectado, si no, le asignamos 0 (Invitado)
+                    id_registro = st.session_state["usuario_id"] if st.session_state["conectado"] else 0
+                    conexion_sql.registrar_archivo(id_registro, nombre_salida, len(df_vertical), len(df_vertical.columns))
                 
                 st.balloons()
                 st.subheader("🎉 ¡Optimización Finalizada con Éxito!")
@@ -216,14 +218,16 @@ with tab_limpieza:
 with tab_historial:
     st.header("🔄 Historial y Auditoría de Procesos")
     
-    # 1. ID temporal de usuario (mientras no implementemos el login real)
-    ID_USUARIO_ACTUAL = 1 
+    # --- BORRA ESTA LÍNEA: ID_USUARIO_ACTUAL = 1 ---
     
-    # 2. El botón que ya tenías programado
+    # 1. Determinamos quién está consultando el historial de forma dinámica
+    id_para_consultar = st.session_state["usuario_id"] if st.session_state["conectado"] else 0
+    
+    # 2. El botón que ya tenías
     if st.button("🔄 Sincronizar y Actualizar Historial"):
         
-        # Llamamos directamente a la función de tu archivo conexion_sql.py
-        rows = obtener_historial_usuario(ID_USUARIO_ACTUAL)
+        # 3. Llamamos usando la nueva variable 'id_para_consultar'
+        rows = obtener_historial_usuario(id_para_consultar)
         
         if rows:
             import pandas as pd
@@ -235,7 +239,6 @@ with tab_historial:
             )
             st.dataframe(df_historial, use_container_width=True)
             
-            # 📊 BONUS: Un gráfico de barras interactivo para que explote visualmente
             st.subheader("📈 Volumen de datos corregidos")
             st.bar_chart(data=df_historial, x="Archivo Destino", y="Líneas Procesadas")
         else:
