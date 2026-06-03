@@ -1,3 +1,4 @@
+from datetime import datetime, timedelta
 import sqlite3
 import os
 
@@ -50,21 +51,28 @@ def inicializar_tablas():
     conn.close()
 
 def registrar_archivo(id_usuario, nombre_archivo, filas, columnas):
-    """Inserta un registro en el historial de archivos procesados"""
     conn = conectar_db()
-    if conn is None: return False
-        
-    cursor = conn.cursor()
+    if conn is None:
+        return False
     try:
+        cursor = conn.cursor()
+        
+        # 🕒 Ajuste de Zona Horaria (UTC a UTC-5 Colombia)
+        # Tomamos la hora del servidor (UTC) y le restamos 5 horas fijas
+        hora_colombia = datetime.utcnow() - timedelta(hours=5)
+        fecha_actual = hora_colombia.strftime('%Y-%m-%d %H:%M:%S')
+        
+        # Tu execute original (asegúrate de que use 'fecha_actual')
         cursor.execute("""
-            INSERT INTO historial_archivos (id_usuario, nombre_archivo, filas_procesadas, columnas_procesadas)
-            VALUES (?, ?, ?, ?);
-        """, (id_usuario, nombre_archivo, filas, columnas))
+            INSERT INTO historial_archivos (id_usuario, nombre_archivo, filas, columnas, fecha_procesado)
+            VALUES (?, ?, ?, ?, ?)
+        """, (id_usuario, nombre_archivo, filas, columnas, fecha_actual))
+        
         conn.commit()
-        print(f"💾 Registro guardado en SQLite: {nombre_archivo} ({filas}x{columnas})")
+        print(f"💾 Registro guardado con hora local: {nombre_archivo} a las {fecha_actual}")
         return True
     except Exception as e:
-        print(f"❌ Error al guardar en el historial: {e}")
+        print(f"Error al registrar archivo: {e}")
         return False
     finally:
         conn.close()
