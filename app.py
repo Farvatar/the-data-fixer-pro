@@ -10,8 +10,8 @@ import io
 if "conectado" not in st.session_state:
     st.session_state["conectado"] = False
     st.session_state["usuario_id"] = None
-    st.session_state["usuario_nombre"] = "Usuario Pro"
-    st.session_state["usuario_plan"] = "Premium"
+    st.session_state["usuario_nombre"] = "Invitado"
+    st.session_state["usuario_plan"] = "Gratis"
 
 # Configuración avanzada de la página
 st.set_page_config(
