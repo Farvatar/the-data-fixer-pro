@@ -92,7 +92,7 @@ def obtener_historial_usuario(id_usuario):
         return []
     finally:
         conn.close()
-        
+
 def registrar_nuevo_usuario(nombre, email, tipo_plan='Gratis'):
     """Registra un nuevo usuario en la base de datos si el email no existe."""
     conn = conectar_db()
@@ -135,17 +135,19 @@ def verificar_login_usuario(email):
     finally:
         conn.close()
 def obtener_conteo_archivos(id_usuario):
-    """Devuelve la cantidad de archivos procesados por un usuario."""
     conn = conectar_db()
-    if conn is None:
-        return 0
+    if conn is None: return 0
     try:
         cursor = conn.cursor()
-        cursor.execute("SELECT COUNT(*) FROM historial_archivos WHERE id_usuario = ?", (id_usuario,))
+        # Forzamos a que el id_usuario sea un entero (0 si viene None)
+        id_seguro = int(id_usuario) if id_usuario is not None else 0
+        
+        # Consultamos el conteo exacto para ese ID
+        cursor.execute("SELECT COUNT(*) FROM historial_archivos WHERE id_usuario = ?", (id_seguro,))
         resultado = cursor.fetchone()
         return resultado[0] if resultado else 0
     except Exception as e:
-        print(f"Error al contar archivos: {e}")
+        print(f"Error en conteo: {e}")
         return 0
     finally:
         conn.close()
