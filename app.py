@@ -119,37 +119,27 @@ with tab_limpieza:
                 with st.spinner("Ejecutando algoritmos de transformación..."):
                 
                     try:
-                        # 1. Transposición segura
+                        # 1. Transposición y limpieza de índice
                         df_vertical = df_original.transpose().reset_index(drop=True)
                         df_vertical.columns = df_vertical.iloc[0].astype(str)
                         df_vertical = df_vertical[1:].copy()
 
-                        # 2. Limpieza de datos
+                        # 2. Limpieza de datos (Forzamos conversión a Serie)
                         for col in df_vertical.columns:
-                            columna = df_vertical[col].astype(str)
+                            # Usamos .iloc[:, 0] para asegurar que extraemos una serie y no un sub-dataframe
+                            serie_raw = df_vertical[col]
+                            if isinstance(serie_raw, pd.DataFrame):
+                                serie_raw = serie_raw.iloc[:, 0]
+                            
+                            # Ahora sí, convertimos a string y limpiamos
+                            columna = serie_raw.astype(str)
                             df_vertical[col] = pd.to_numeric(columna.str.replace(',', '.', regex=False), errors='coerce')
-                    
+                            
                     except Exception as e:
-                        st.error(f"Error detallado: {e}")
+                        st.error(f"Error en la columna {col}: {e}")
                         import traceback
                         st.code(traceback.format_exc())
                         st.stop()
-                        # 1. Transposición limpia
-                        df_vertical = df_original.transpose().reset_index(drop=True)
-                        # Asignar la primera fila como encabezados
-                        df_vertical.columns = df_vertical.iloc[0].astype(str)
-                        df_vertical = df_vertical[1:].copy()
-
-                    # 2. Limpieza de datos (Forzamos tipo Serie por columna)
-                for col in df_vertical.columns:
-                    # Seleccionamos la columna y la convertimos a texto
-                    columna = df_vertical[col].astype(str)
-                    
-                    # Reemplazamos usando el método .str solo sobre la columna (Serie)
-                    df_vertical[col] = columna.str.replace(',', '.', regex=False)
-                    
-                    # Convertimos a numérico
-                    df_vertical[col] = pd.to_numeric(df_vertical[col], errors='coerce')
 
                    
                     # 4. CÁLCULO DE MÉTRICAS (Sin usar nombre_columna)
