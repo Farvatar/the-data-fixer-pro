@@ -117,25 +117,22 @@ with tab_limpieza:
             
             if st.button("✨ Procesar y Optimizar Base de Datos"):
                 with st.spinner("Ejecutando algoritmos de transformación..."):
-                    # --- LIMPIEZA TOTAL A PRUEBA DE ERRORES ---
-                    # 1. Transposición y limpieza de índice
-                    df_vertical = df_original.transpose()
-                    df_vertical = df_vertical.reset_index(drop=True)
-                    
-                    # 2. Asignar encabezados correctamente
-                    # Convertimos la primera fila en los nombres de las columnas
+                    # 1. Transposición limpia
+                    df_vertical = df_original.transpose().reset_index(drop=True)
+                    # Asignar la primera fila como encabezados
                     df_vertical.columns = df_vertical.iloc[0].astype(str)
                     df_vertical = df_vertical[1:].copy()
+
+                    # 2. Limpieza de datos (Forzamos tipo Serie por columna)
+                for col in df_vertical.columns:
+                    # Seleccionamos la columna y la convertimos a texto
+                    columna = df_vertical[col].astype(str)
                     
-                    # 3. Limpieza de datos (aquí evitamos el error 'str')
-                    # Iteramos explícitamente sobre los nombres de las columnas
-                    for col in df_vertical.columns:
-                        # Convertimos la columna a una Serie (df[col] es una Serie, no un DataFrame)
-                        serie = df_vertical[col].astype(str)
-                        # Aplicamos el reemplazo solo sobre la serie
-                        serie_limpia = serie.str.replace(',', '.', regex=False)
-                        # Convertimos a numérico y lo reasignamos
-                        df_vertical[col] = pd.to_numeric(serie_limpia, errors='coerce')
+                    # Reemplazamos usando el método .str solo sobre la columna (Serie)
+                    df_vertical[col] = columna.str.replace(',', '.', regex=False)
+                    
+                    # Convertimos a numérico
+                    df_vertical[col] = pd.to_numeric(df_vertical[col], errors='coerce')
 
                    
                     # 4. CÁLCULO DE MÉTRICAS (Sin usar nombre_columna)
