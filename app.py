@@ -129,22 +129,29 @@ with tab_limpieza:
                     else:
                         titulo_limpio = titulo_sucio
                         
-                    # --- NUEVO CÓDIGO DE ASIGNACIÓN ROBUSTA ---
-                    # Convertimos la primera fila en una lista de nombres de columnas
-                    nuevos_encabezados = df_vertical.iloc[0].astype(str).tolist()
-            
-                    # Limpiamos el primer nombre de columna por si tiene el separador
-                    nuevos_encabezados[0] = nuevos_encabezados[0].split(";")[0]
-            
-                    # Asignamos todos los encabezados de una vez
-                    df_vertical.columns = nuevos_encabezados
+                    # --- LIMPIEZA A PRUEBA DE ERRORES ---
+                    df_vertical = df_original.transpose()
                     
-                    # Eliminamos la fila que ahora actúa como encabezado
-                    df_vertical = df_vertical.drop(df_vertical.index[0])
+                    # Resetear índice para asegurar que tenemos una fila 0 válida
+                    df_vertical = df_vertical.reset_index(drop=True)
                     
-                    # Seleccionamos la primera columna para procesar como dato
+                    # Usar la primera fila como nombres de columnas
+                    df_vertical.columns = df_vertical.iloc[0].astype(str)
+                    
+                    # Eliminar SOLAMENTE la primera fila (la de los encabezados)
+                    df_vertical = df_vertical.iloc[1:].copy()
+                    
+                    # Verificar si quedaron filas
+                    if len(df_vertical) == 0:
+                        st.error("Error: El archivo quedó vacío tras el proceso. Revisa el formato de entrada.")
+                        st.stop() # Detiene la ejecución aquí si no hay datos
+                    
+                    # Nombre de la primera columna para procesar (dinámico)
                     nombre_columna = df_vertical.columns[0]
-                    # -------------------------------------------
+                    
+                    # Limpieza de decimales (robusta para cualquier nombre de columna)
+                    df_vertical[nombre_columna] = df_vertical[nombre_columna].astype(str).str.replace(',', '.')
+                    df_vertical[nombre_columna] = pd.to_numeric(df_vertical[nombre_columna], errors='coerce')
                     
                     # 2. Corrección regional de decimales para la columna activa
                     col_datos = df_vertical[nombre_columna].astype(str)
