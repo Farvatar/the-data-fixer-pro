@@ -129,20 +129,30 @@ with tab_limpieza:
                     else:
                         titulo_limpio = titulo_sucio
                         
-                    # Asignamos el nombre limpio a la columna
-                    df_vertical.columns = [titulo_limpio]  
-                    df_vertical = df_vertical.drop(df_vertical.index[0])  
+                    # --- NUEVO CÓDIGO DE ASIGNACIÓN ROBUSTA ---
+                    # Convertimos la primera fila en una lista de nombres de columnas
+                    nuevos_encabezados = df_vertical.iloc[0].astype(str).tolist()
+            
+                    # Limpiamos el primer nombre de columna por si tiene el separador
+                    nuevos_encabezados[0] = nuevos_encabezados[0].split(";")[0]
+            
+                    # Asignamos todos los encabezados de una vez
+                    df_vertical.columns = nuevos_encabezados
                     
+                    # Eliminamos la fila que ahora actúa como encabezado
+                    df_vertical = df_vertical.drop(df_vertical.index[0])
+                    
+                    # Seleccionamos la primera columna para procesar como dato
                     nombre_columna = df_vertical.columns[0]
-                    columna_texto = df_vertical[nombre_columna].astype(str)
+                    # -------------------------------------------
                     
-                    # 2. Corrección regional de decimales
-                    conteo_comas = columna_texto.str.contains(',').sum()
-                    conteo_puntos = columna_texto.str.contains(r'\.').sum()
+                    # 2. Corrección regional de decimales para la columna activa
+                    col_datos = df_vertical[nombre_columna].astype(str)
+                    conteo_comas = col_datos.str.contains(',').sum()
+                    conteo_puntos = col_datos.str.contains(r'\.').sum()
+                    
                     if conteo_comas > conteo_puntos:
-                        df_vertical[nombre_columna] = columna_texto.str.replace(',', '.')
-                    else:
-                        df_vertical[nombre_columna] = columna_texto
+                        df_vertical[nombre_columna] = col_datos.str.replace(',', '.')
                     
                     df_vertical[nombre_columna] = pd.to_numeric(df_vertical[nombre_columna], errors='coerce')
                     
