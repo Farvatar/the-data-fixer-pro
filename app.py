@@ -105,7 +105,7 @@ with tab_limpieza:
                 st.info("ℹ️ Separador estándar configurado (';').")
                 
             archivo_cargado.seek(0)
-            df_original = pd.read_csv(archivo_cargado, sep=separador_detectado, header=None)
+            df_original = pd.read_csv(archivo_cargado, sep=';')
             
             with st.expander("👀 Ver estructura del archivo original cargado"):
                 st.dataframe(df_original, use_container_width=True)
