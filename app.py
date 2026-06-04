@@ -117,11 +117,28 @@ with tab_limpieza:
             
             if st.button("✨ Procesar y Optimizar Base de Datos"):
                 with st.spinner("Ejecutando algoritmos de transformación..."):
-                    # 1. Transposición limpia
-                    df_vertical = df_original.transpose().reset_index(drop=True)
-                    # Asignar la primera fila como encabezados
-                    df_vertical.columns = df_vertical.iloc[0].astype(str)
-                    df_vertical = df_vertical[1:].copy()
+                
+                    try:
+                        # 1. Transposición segura
+                        df_vertical = df_original.transpose().reset_index(drop=True)
+                        df_vertical.columns = df_vertical.iloc[0].astype(str)
+                        df_vertical = df_vertical[1:].copy()
+
+                        # 2. Limpieza de datos
+                        for col in df_vertical.columns:
+                            columna = df_vertical[col].astype(str)
+                            df_vertical[col] = pd.to_numeric(columna.str.replace(',', '.', regex=False), errors='coerce')
+                    
+                    except Exception as e:
+                        st.error(f"Error detallado: {e}")
+                        import traceback
+                        st.code(traceback.format_exc())
+                        st.stop()
+                        # 1. Transposición limpia
+                        df_vertical = df_original.transpose().reset_index(drop=True)
+                        # Asignar la primera fila como encabezados
+                        df_vertical.columns = df_vertical.iloc[0].astype(str)
+                        df_vertical = df_vertical[1:].copy()
 
                     # 2. Limpieza de datos (Forzamos tipo Serie por columna)
                 for col in df_vertical.columns:
