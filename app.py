@@ -118,60 +118,42 @@ with tab_limpieza:
             if st.button("✨ Procesar y Optimizar Base de Datos"):
                 with st.spinner("Ejecutando algoritmos de transformación..."):
                     # 1. Transposición básica
-                    df_vertical = df_original.transpose()
+                    # --- LIMPIEZA UNIFICADA Y SEGURA ---
+                    # 1. Transposición única
+                    df_vertical = df_original.transpose().reset_index(drop=True)
                     
-                    # Guardamos el título original de la primera celda
-                    titulo_sucio = str(df_vertical.iloc[0, 0])
-                    
-                    # CORRECCIÓN: Si el título viene con punto y coma ';', lo limpiamos
-                    if ";" in titulo_sucio:
-                        titulo_limpio = titulo_sucio.split(";")[0]
-                    else:
-                        titulo_limpio = titulo_sucio
-                        
-                    # 1. Transposición
-                    df_vertical = df_original.transpose()
-                    df_vertical.columns = df_vertical.iloc[0]
+                    # Asignar la primera fila como encabezados
+                    df_vertical.columns = df_vertical.iloc[0].astype(str)
                     df_vertical = df_vertical[1:].copy()
 
-                    # --- LIMPIEZA DE VARIABLES ---
-
-                    # Si estas variables no vienen de checkboxes, define sus valores por defecto aquí
-                    if 'eliminar_duplicados' not in locals(): eliminar_duplicados = False
-                    if 'autocompletar' not in locals(): autocompletar = False
-                    if 'reparar_nulos' not in locals(): reparar_nulos = False
-
                     # 2. Limpieza de datos (decimales y numéricos)
-                    # --- DEBUG Y LIMPIEZA TOTAL ---
-                    st.write("Debug: Tipo de df_vertical antes de procesar:", type(df_vertical))
-
-                    # Forzamos a que siempre sea un DataFrame
-                    if not isinstance(df_vertical, pd.DataFrame):
-                        df_vertical = df_vertical.to_frame()
-
-                    # Limpieza de datos asegurada
+                    # Iteramos columna por columna usando nombres para evitar errores de tipo
                     for col in df_vertical.columns:
-                        # 1. Convertimos a una Serie pura
+                        # Convertimos explícitamente a Series de texto para usar .str de forma segura
                         serie = df_vertical[col].astype(str)
+                        serie_limpia = serie.str.replace(',', '.', regex=False)
                         
-                        # 2. Reemplazamos usando el método de cadena de la serie
-                        serie_limpia = serie.str.replace(',', '.')
-                        
-                        # 3. Convertimos a numérico y asignamos de vuelta al DataFrame
+                        # Convertimos a numérico, transformando errores en NaN
                         df_vertical[col] = pd.to_numeric(serie_limpia, errors='coerce')
+
+                    # 3. Aplicar opciones de usuario (Asegurando que las variables existan)
+                    if st.session_state.get('eliminar_duplicados', False):
+                        df_vertical = df_vertical.drop_duplicates()
+
+                    if st.session_state.get('autocompletar', False):
+                        df_vertical = df_vertical.fillna(df_vertical.mean(numeric_only=True))
+
+                    if st.session_state.get('reparar_nulos', False):
+                        df_vertical = df_vertical.interpolate(method='linear')
+                    
+                    # 4. Cálculo de métricas finales (sin usar variables inexistentes)
+                    filas_finales = len(df_vertical)
+                    nulos_reparados = df_vertical.isna().sum().sum()
+                    duplicados_eliminados = df_original.duplicated().sum()
 
                     st.write("Debug: Limpieza exitosa. Filas resultantes:", len(df_vertical))
 
-                    # 3. Aplicar opciones de usuario
-                    if eliminar_duplicados:
-                        df_vertical = df_vertical.drop_duplicates()
-
-                    if autocompletar:
-                        df_vertical = df_vertical.fillna(df_vertical.mean(numeric_only=True))
-
-                    if reparar_nulos:
-                        df_vertical = df_vertical.interpolate(method='linear')
-
+                   
                     # 4. CÁLCULO DE MÉTRICAS (Sin usar nombre_columna)
                     filas_finales = len(df_vertical)
                     # Contar nulos y duplicados sobre el resultado final
