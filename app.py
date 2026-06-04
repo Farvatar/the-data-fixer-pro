@@ -105,7 +105,7 @@ with tab_limpieza:
                 st.info("ℹ️ Separador estándar configurado (';').")
                 
             archivo_cargado.seek(0)
-            df_original = pd.read_csv(archivo_cargado, sep=';')
+            df_original = pd.read_csv(archivo_cargado, sep=';', nrows=50000)
             
             with st.expander("👀 Ver estructura del archivo original cargado"):
                 st.dataframe(df_original, use_container_width=True)
@@ -119,24 +119,21 @@ with tab_limpieza:
                 with st.spinner("Ejecutando algoritmos de transformación..."):
                 
                     try:
-                        # 1. Transposición y limpieza de índice
+                        # 1. Transposición y limpieza de encabezados
                         df_vertical = df_original.transpose().reset_index(drop=True)
                         df_vertical.columns = df_vertical.iloc[0].astype(str)
                         df_vertical = df_vertical[1:].copy()
 
-                        # 2. Limpieza de datos (Forzamos conversión a Serie)
-                        for col in df_vertical.columns:
-                            # Usamos .iloc[:, 0] para asegurar que extraemos una serie y no un sub-dataframe
-                            serie_raw = df_vertical[col]
-                            if isinstance(serie_raw, pd.DataFrame):
-                                serie_raw = serie_raw.iloc[:, 0]
-                            
-                            # Ahora sí, convertimos a string y limpiamos
-                            columna = serie_raw.astype(str)
-                            df_vertical[col] = pd.to_numeric(columna.str.replace(',', '.', regex=False), errors='coerce')
+                        # 2. LIMPIEZA VELOZ (Vectorizada)
+                        # En lugar de un bucle 'for', aplicamos el reemplazo a todo el DataFrame a la vez
+                        # Esto es lo que hará que el archivo pesado se procese en milisegundos
+                        df_vertical = df_vertical.replace(',', '.', regex=True)
+                        
+                        # Convertir todo el DataFrame a numérico de una sola vez
+                        df_vertical = df_vertical.apply(pd.to_numeric, errors='coerce')
                             
                     except Exception as e:
-                        st.error(f"Error en la columna {col}: {e}")
+                        st.error(f"Error procesando datos: {e}")
                         import traceback
                         st.code(traceback.format_exc())
                         st.stop()
