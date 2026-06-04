@@ -135,16 +135,21 @@ with tab_limpieza:
                     df_vertical = df_vertical[1:].copy()
 
                     # --- LIMPIEZA DE VARIABLES ---
-                    
+
                     # Si estas variables no vienen de checkboxes, define sus valores por defecto aquí
                     if 'eliminar_duplicados' not in locals(): eliminar_duplicados = False
                     if 'autocompletar' not in locals(): autocompletar = False
                     if 'reparar_nulos' not in locals(): reparar_nulos = False
 
-                    # --- 2. PROCESAMIENTO DINÁMICO ---
-                    # Limpieza de decimales para todas las columnas
+                    # 2. Limpieza de datos (decimales y numéricos) para todas las columnas
                     for col in df_vertical.columns:
-                        df_vertical[col] = df_vertical[col].astype(str).str.replace(',', '.')
+                        # Convertimos primero a Series (asegurando que sea una sola columna)
+                        serie_datos = df_vertical[col].astype(str)
+                        
+                        # Aplicamos el reemplazo solo sobre la serie
+                        df_vertical[col] = serie_datos.str.replace(',', '.')
+                        
+                        # Convertimos a numérico
                         df_vertical[col] = pd.to_numeric(df_vertical[col], errors='coerce')
 
                     # 3. Aplicar opciones de usuario
