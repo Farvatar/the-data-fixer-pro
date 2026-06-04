@@ -141,16 +141,26 @@ with tab_limpieza:
                     if 'autocompletar' not in locals(): autocompletar = False
                     if 'reparar_nulos' not in locals(): reparar_nulos = False
 
-                    # 2. Limpieza de datos (decimales y numéricos) para todas las columnas
+                    # 2. Limpieza de datos (decimales y numéricos)
+                    # --- DEBUG Y LIMPIEZA TOTAL ---
+                    st.write("Debug: Tipo de df_vertical antes de procesar:", type(df_vertical))
+
+                    # Forzamos a que siempre sea un DataFrame
+                    if not isinstance(df_vertical, pd.DataFrame):
+                        df_vertical = df_vertical.to_frame()
+
+                    # Limpieza de datos asegurada
                     for col in df_vertical.columns:
-                        # Convertimos primero a Series (asegurando que sea una sola columna)
-                        serie_datos = df_vertical[col].astype(str)
+                        # 1. Convertimos a una Serie pura
+                        serie = df_vertical[col].astype(str)
                         
-                        # Aplicamos el reemplazo solo sobre la serie
-                        df_vertical[col] = serie_datos.str.replace(',', '.')
+                        # 2. Reemplazamos usando el método de cadena de la serie
+                        serie_limpia = serie.str.replace(',', '.')
                         
-                        # Convertimos a numérico
-                        df_vertical[col] = pd.to_numeric(df_vertical[col], errors='coerce')
+                        # 3. Convertimos a numérico y asignamos de vuelta al DataFrame
+                        df_vertical[col] = pd.to_numeric(serie_limpia, errors='coerce')
+
+                    st.write("Debug: Limpieza exitosa. Filas resultantes:", len(df_vertical))
 
                     # 3. Aplicar opciones de usuario
                     if eliminar_duplicados:
