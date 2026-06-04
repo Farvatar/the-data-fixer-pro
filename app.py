@@ -129,58 +129,39 @@ with tab_limpieza:
                     else:
                         titulo_limpio = titulo_sucio
                         
-                    # --- LIMPIEZA A PRUEBA DE ERRORES ---
+                    # 1. Transposición
                     df_vertical = df_original.transpose()
+                    df_vertical.columns = df_vertical.iloc[0]
+                    df_vertical = df_vertical[1:].copy()
+
+                    # --- LIMPIEZA DE VARIABLES ---
                     
-                    # Resetear índice para asegurar que tenemos una fila 0 válida
-                    df_vertical = df_vertical.reset_index(drop=True)
-                    
-                    # Usar la primera fila como nombres de columnas
-                    df_vertical.columns = df_vertical.iloc[0].astype(str)
-                    
-                    # Eliminar SOLAMENTE la primera fila (la de los encabezados)
-                    df_vertical = df_vertical.iloc[1:].copy()
-                    
-                    # Verificar si quedaron filas
-                    if len(df_vertical) == 0:
-                        st.error("Error: El archivo quedó vacío tras el proceso. Revisa el formato de entrada.")
-                        st.stop() # Detiene la ejecución aquí si no hay datos
-                    
-                    # Nombre de la primera columna para procesar (dinámico)
-                    nombre_columna = df_vertical.columns[0]
-                    
-                    # Limpieza de decimales (robusta para cualquier nombre de columna)
-                    df_vertical[nombre_columna] = df_vertical[nombre_columna].astype(str).str.replace(',', '.')
-                    df_vertical[nombre_columna] = pd.to_numeric(df_vertical[nombre_columna], errors='coerce')
-                    
-                    # 2. Corrección regional de decimales para la columna activa
-                    col_datos = df_vertical[nombre_columna].astype(str)
-                    conteo_comas = col_datos.str.contains(',').sum()
-                    conteo_puntos = col_datos.str.contains(r'\.').sum()
-                    
-                    if conteo_comas > conteo_puntos:
-                        df_vertical[nombre_columna] = col_datos.str.replace(',', '.')
-                    
-                    df_vertical[nombre_columna] = pd.to_numeric(df_vertical[nombre_columna], errors='coerce')
-                    
-                    # --- AQUÍ ESTÁ LA CORRECCIÓN: Definimos las variables de control ---
-                    filas_iniciales = len(df_vertical)
-                    duplicados_eliminados = 0
-                    nulos_reparados = 0
-                    
-                    # 3. FILTRADO: Duplicados
-                    if eliminar_dup:
+                    # Si estas variables no vienen de checkboxes, define sus valores por defecto aquí
+                    if 'eliminar_duplicados' not in locals(): eliminar_duplicados = False
+                    if 'autocompletar' not in locals(): autocompletar = False
+                    if 'reparar_nulos' not in locals(): reparar_nulos = False
+
+                    # --- 2. PROCESAMIENTO DINÁMICO ---
+                    # Limpieza de decimales para todas las columnas
+                    for col in df_vertical.columns:
+                        df_vertical[col] = df_vertical[col].astype(str).str.replace(',', '.')
+                        df_vertical[col] = pd.to_numeric(df_vertical[col], errors='coerce')
+
+                    # 3. Aplicar opciones de usuario
+                    if eliminar_duplicados:
                         df_vertical = df_vertical.drop_duplicates()
-                        duplicados_eliminados = filas_iniciales - len(df_vertical)
-                        
-                    # 4. FILTRADO: Valores Nulos
+
+                    if autocompletar:
+                        df_vertical = df_vertical.fillna(df_vertical.mean(numeric_only=True))
+
                     if reparar_nulos:
-                        nulos_reparados = df_vertical[nombre_columna].isna().sum()
-                        if nulos_reparados > 0:
-                            df_vertical[nombre_columna] = df_vertical[nombre_columna].interpolate(method='linear')
-                    
-                    # Limpieza final de filas vacías persistentes
-                    df_vertical = df_vertical.dropna()
+                        df_vertical = df_vertical.interpolate(method='linear')
+
+                    # 4. CÁLCULO DE MÉTRICAS (Sin usar nombre_columna)
+                    filas_finales = len(df_vertical)
+                    # Contar nulos y duplicados sobre el resultado final
+                    nulos_reparados = df_vertical.isna().sum().sum()
+                    duplicados_eliminados = df_vertical.duplicated().sum()
                     
                     # Registrar log en base de datos
                     nombre_salida = f"optimizando_{archivo_cargado.name}"
