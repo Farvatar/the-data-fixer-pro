@@ -163,7 +163,20 @@ with tab_limpieza:
                 
                 st.write("### 📥 Panel de Descarga del Producto")
                 col_down1, col_down2 = st.columns(2)
-                st.write(df_vertical.head())
+                
+                # --- SEGURIDAD: Limpieza de tipos y estructura ---
+                # Convertimos todo a string y luego a numérico forzado
+                # Esto elimina cualquier objeto complejo que esté causando el bloqueo
+                df_vertical = df_vertical.apply(lambda x: pd.to_numeric(x, errors='coerce'))
+
+                # Reseteamos el índice para que no sea un objeto pesado de Pandas
+                df_vertical = df_vertical.reset_index(drop=True)
+
+                # --- FIN DE SEGURIDAD ---
+                
+                st.write(f"Columnas detectadas: {len(df_vertical.columns)}")
+                st.write(f"Filas detectadas: {len(df_vertical)}")
+                
                 with col_down1:
                     csv_datos = df_vertical.to_csv(index=False).encode('utf-8')
                     st.download_button(
