@@ -119,23 +119,20 @@ with tab_limpieza:
                 with st.spinner("Ejecutando algoritmos de transformación..."):
                 
                     try:
-                        # 1. Transposición y limpieza de encabezados
-                        df_vertical = df_original.transpose().reset_index(drop=True)
-                        df_vertical.columns = df_vertical.iloc[0].astype(str)
-                        df_vertical = df_vertical[1:].copy()
-
-                        # 2. LIMPIEZA VELOZ (Vectorizada)
-                        # En lugar de un bucle 'for', aplicamos el reemplazo a todo el DataFrame a la vez
-                        # Esto es lo que hará que el archivo pesado se procese en milisegundos
-                        df_vertical = df_vertical.replace(',', '.', regex=True)
+                        # 1. Transposición directa sin crear copias innecesarias
+                        df_vertical = df_original.transpose()
                         
-                        # Convertir todo el DataFrame a numérico de una sola vez
+                        # 2. Asignar encabezados y limpiar índices
+                        df_vertical.columns = df_vertical.iloc[0].astype(str)
+                        df_vertical = df_vertical.iloc[1:] # Usamos iloc para evitar copias pesadas
+                        
+                        # 3. Limpieza de datos en una sola pasada (sin bucles 'for' lentos)
+                        # Reemplazamos ',' por '.' en todo el df y convertimos a numérico
+                        df_vertical = df_vertical.replace(',', '.', regex=True)
                         df_vertical = df_vertical.apply(pd.to_numeric, errors='coerce')
                             
                     except Exception as e:
                         st.error(f"Error procesando datos: {e}")
-                        import traceback
-                        st.code(traceback.format_exc())
                         st.stop()
 
                    
