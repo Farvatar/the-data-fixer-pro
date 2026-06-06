@@ -116,15 +116,14 @@ with tab_limpieza:
             with col_opt2: reparar_nulos = st.checkbox("Autocompletar celdas vacías", value=True)
             
             if st.button("✨ Procesar y Optimizar Base de Datos"):
-                with st.spinner("Procesando datos (esto puede tardar unos segundos)..."):
+                with st.spinner("Ejecutando algoritmos de transformación..."):
                     try:
-                        # 1. Lectura optimizada: Procesamos en trozos (chunks) si es necesario
-                        # Usamos read_csv directo sin transponer inicialmente para ahorrar RAM
+                        # 1. Lectura segura (sin transponer de inmediato)
                         archivo_cargado.seek(0)
-                        df_temp = pd.read_csv(archivo_cargado, sep=';', nrows=50000)
+                        df_original = pd.read_csv(archivo_cargado, sep=';', nrows=50000)
                         
-                        # 2. Transposición controlada
-                        df_vertical = df_temp.transpose().reset_index(drop=True)
+                        # 2. Transposición eficiente
+                        df_vertical = df_original.transpose().reset_index(drop=True)
                         df_vertical.columns = df_vertical.iloc[0].astype(str)
                         df_vertical = df_vertical.iloc[1:].copy()
                         
@@ -132,45 +131,44 @@ with tab_limpieza:
                         df_vertical = df_vertical.replace(',', '.', regex=True)
                         df_vertical = df_vertical.apply(pd.to_numeric, errors='coerce')
                         
-                        # 4. Cálculo de métricas ligero
+                        # 4. Cálculo de métricas
                         filas_finales = len(df_vertical)
                         nulos_reparados = df_vertical.isna().sum().sum()
                         duplicados_eliminados = df_vertical.duplicated().sum()
                         
-                        # Registrar log
-                        usuario_id = st.session_state.get("usuario_id", 0)
+                        # 5. Registro seguro (Evitamos el error NoneType)
+                        usuario_id_raw = st.session_state.get("usuario_id")
+                        usuario_id = int(usuario_id_raw) if usuario_id_raw is not None else 0
+                        
                         nombre_salida = f"optimizando_{archivo_cargado.name}"
                         conexion_sql.registrar_archivo(usuario_id, nombre_salida, filas_finales, len(df_vertical.columns))
                         
                         st.balloons()
                         st.subheader("🎉 ¡Optimización Finalizada con Éxito!")
                         
-                        # Render de KPIs (sin tablas pesadas)
                         kpi1, kpi2, kpi3 = st.columns(3)
                         kpi1.metric("Filas Finales", filas_finales)
                         kpi2.metric("Duplicados Borrados", int(duplicados_eliminados))
                         kpi3.metric("Celdas Reparadas", int(nulos_reparados))
                         
-                        # Panel de Descarga (Limpio y eficiente)
-                        st.write("### 📥 Panel de Descarga del Producto")
+                        st.write("### 📥 Panel de Descarga")
                         col_down1, col_down2 = st.columns(2)
                         
-                        with col_down1:
-                            csv_datos = df_vertical.to_csv(index=False).encode('utf-8')
-                            st.download_button("🟢 Descargar CSV", data=csv_datos, file_name=f"clean_{archivo_cargado.name}", mime="text/csv")
+                        # CSV es mucho más liviano que Excel para descargas grandes
+                        csv_data = df_vertical.to_csv(index=False).encode('utf-8')
+                        col_down1.download_button("🟢 Descargar CSV", csv_data, f"clean_{archivo_cargado.name}", "text/csv")
                         
-                        with col_down2:
-                            # Usamos xlsxwriter que es mucho más rápido y ligero que openpyxl
-                            buffer_excel = io.BytesIO()
-                            with pd.ExcelWriter(buffer_excel, engine='xlsxwriter') as writer:
-                                df_vertical.to_excel(writer, index=False, sheet_name="Datos_Limpios")
-                            st.download_button("🔵 Descargar EXCEL", data=buffer_excel.getvalue(), file_name=f"clean_{archivo_cargado.name.replace('.csv', '.xlsx')}", mime="application/vnd.ms-excel")
+                        # Excel optimizado con xlsxwriter
+                        buffer = io.BytesIO()
+                        with pd.ExcelWriter(buffer, engine='xlsxwriter') as writer:
+                            df_vertical.to_excel(writer, index=False, sheet_name="Datos")
+                        col_down2.download_button("🔵 Descargar EXCEL", buffer.getvalue(), f"clean_{archivo_cargado.name.replace('.csv', '.xlsx')}", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 
                     except Exception as e:
                         st.error(f"Error procesando datos: {e}")
                         st.stop()
         except Exception as e:
-            st.error(f"Error cargando el archivo: {e}")
+            st.error(f"Error leyendo o procesando el archivo cargado: {e}")
             st.stop()
 
 # Reemplaza la lógica actual en tab_historial con esto:
