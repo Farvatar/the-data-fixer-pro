@@ -105,7 +105,7 @@ with tab_limpieza:
                 st.info("ℹ️ Separador estándar configurado (';').")
                 
             archivo_cargado.seek(0)
-            df_original = pd.read_csv(archivo_cargado, sep=';', nrows=50000)
+            df_original = pd.read_csv(archivo_cargado, sep=';', nrows=5000)
             
             with st.expander("👀 Ver estructura del archivo original cargado"):
                 st.dataframe(df_original, use_container_width=True)
@@ -122,10 +122,14 @@ with tab_limpieza:
                         archivo_cargado.seek(0)
                         df_original = pd.read_csv(archivo_cargado, sep=';', nrows=50000)
                         
-                        # 2. Transposición eficiente
-                        df_vertical = df_original.transpose().reset_index(drop=True)
-                        df_vertical.columns = df_vertical.iloc[0].astype(str)
-                        df_vertical = df_vertical.iloc[1:].copy()
+                        # 2. Transposición con límite de seguridad para Excel
+                        if len(df_original) > 16000:
+                            st.warning("⚠️ El archivo es demasiado largo para Excel tras la transposición (excede las 16,384 columnas). Exportando solo en formato CSV.")
+                            df_vertical = df_original.copy()
+                        else:
+                            df_vertical = df_original.transpose().reset_index(drop=True)
+                            df_vertical.columns = df_vertical.iloc[0].astype(str)
+                            df_vertical = df_vertical.iloc[1:].copy()
                         
                         # 3. Limpieza vectorial (la más rápida)
                         df_vertical = df_vertical.replace(',', '.', regex=True)
