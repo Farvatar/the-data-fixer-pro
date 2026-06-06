@@ -123,8 +123,8 @@ with tab_limpieza:
                         df_original = pd.read_csv(archivo_cargado, sep=';', nrows=50000)
                         
                         # 2. Transposición con límite de seguridad para Excel
-                        if len(df_original) > 16000:
-                            st.warning("⚠️ El archivo es demasiado largo para Excel tras la transposición (excede las 16,384 columnas). Exportando solo en formato CSV.")
+                        if len(df_original) > 16380:
+                            st.warning("⚠️ El archivo resultante tendrá más de 16,384 columnas. Excel podría no abrirlo correctamente.")
                             df_vertical = df_original.copy()
                         else:
                             df_vertical = df_original.transpose().reset_index(drop=True)
