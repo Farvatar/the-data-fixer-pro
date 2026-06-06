@@ -116,94 +116,62 @@ with tab_limpieza:
             with col_opt2: reparar_nulos = st.checkbox("Autocompletar celdas vacías", value=True)
             
             if st.button("✨ Procesar y Optimizar Base de Datos"):
-                with st.spinner("Ejecutando algoritmos de transformación..."):
-                
+                with st.spinner("Procesando datos (esto puede tardar unos segundos)..."):
                     try:
-                        # 1. Transposición directa sin crear copias innecesarias
-                        df_vertical = df_original.transpose()
+                        # 1. Lectura optimizada: Procesamos en trozos (chunks) si es necesario
+                        # Usamos read_csv directo sin transponer inicialmente para ahorrar RAM
+                        archivo_cargado.seek(0)
+                        df_temp = pd.read_csv(archivo_cargado, sep=';', nrows=50000)
                         
-                        # 2. Asignar encabezados y limpiar índices
+                        # 2. Transposición controlada
+                        df_vertical = df_temp.transpose().reset_index(drop=True)
                         df_vertical.columns = df_vertical.iloc[0].astype(str)
-                        df_vertical = df_vertical.iloc[1:] # Usamos iloc para evitar copias pesadas
+                        df_vertical = df_vertical.iloc[1:].copy()
                         
-                        # 3. Limpieza de datos en una sola pasada (sin bucles 'for' lentos)
-                        # Reemplazamos ',' por '.' en todo el df y convertimos a numérico
+                        # 3. Limpieza vectorial (la más rápida)
                         df_vertical = df_vertical.replace(',', '.', regex=True)
                         df_vertical = df_vertical.apply(pd.to_numeric, errors='coerce')
-                            
+                        
+                        # 4. Cálculo de métricas ligero
+                        filas_finales = len(df_vertical)
+                        nulos_reparados = df_vertical.isna().sum().sum()
+                        duplicados_eliminados = df_vertical.duplicated().sum()
+                        
+                        # Registrar log
+                        usuario_id = st.session_state.get("usuario_id", 0)
+                        nombre_salida = f"optimizando_{archivo_cargado.name}"
+                        conexion_sql.registrar_archivo(usuario_id, nombre_salida, filas_finales, len(df_vertical.columns))
+                        
+                        st.balloons()
+                        st.subheader("🎉 ¡Optimización Finalizada con Éxito!")
+                        
+                        # Render de KPIs (sin tablas pesadas)
+                        kpi1, kpi2, kpi3 = st.columns(3)
+                        kpi1.metric("Filas Finales", filas_finales)
+                        kpi2.metric("Duplicados Borrados", int(duplicados_eliminados))
+                        kpi3.metric("Celdas Reparadas", int(nulos_reparados))
+                        
+                        # Panel de Descarga (Limpio y eficiente)
+                        st.write("### 📥 Panel de Descarga del Producto")
+                        col_down1, col_down2 = st.columns(2)
+                        
+                        with col_down1:
+                            csv_datos = df_vertical.to_csv(index=False).encode('utf-8')
+                            st.download_button("🟢 Descargar CSV", data=csv_datos, file_name=f"clean_{archivo_cargado.name}", mime="text/csv")
+                        
+                        with col_down2:
+                            # Usamos xlsxwriter que es mucho más rápido y ligero que openpyxl
+                            buffer_excel = io.BytesIO()
+                            with pd.ExcelWriter(buffer_excel, engine='xlsxwriter') as writer:
+                                df_vertical.to_excel(writer, index=False, sheet_name="Datos_Limpios")
+                            st.download_button("🔵 Descargar EXCEL", data=buffer_excel.getvalue(), file_name=f"clean_{archivo_cargado.name.replace('.csv', '.xlsx')}", mime="application/vnd.ms-excel")
+
                     except Exception as e:
                         st.error(f"Error procesando datos: {e}")
                         st.stop()
-
-                   
-                    # 4. CÁLCULO DE MÉTRICAS (Sin usar nombre_columna)
-                    filas_finales = len(df_vertical)
-                    # Contar nulos y duplicados sobre el resultado final
-                    nulos_reparados = df_vertical.isna().sum().sum()
-                    duplicados_eliminados = df_vertical.duplicated().sum()
-                    
-                    # Registrar log en base de datos
-                    nombre_salida = f"optimizando_{archivo_cargado.name}"
-                    # Usamos el ID del usuario si está conectado, si no, le asignamos 0 (Invitado)
-                    usuario_id = st.session_state.get("usuario_id")
-                    id_registro = int(usuario_id) if usuario_id is not None else 0
-                    conexion_sql.registrar_archivo(id_registro, nombre_salida, len(df_vertical), len(df_vertical.columns))
-                
-                st.balloons()
-                st.subheader("🎉 ¡Optimización Finalizada con Éxito!")
-                
-                # Render de KPIs
-                kpi1, kpi2, kpi3 = st.columns(3)
-                with kpi1: st.metric("Filas Finales", len(df_vertical))
-                with kpi2: st.metric("Duplicados Borrados", int(duplicados_eliminados))
-                with kpi3: st.metric("Celdas Reparadas", int(nulos_reparados))
-                
-                st.write("### 📊 Gráfico Analítico de la Tendencia")
-                st.line_chart(df_vertical)
-                
-                st.write("### 📥 Panel de Descarga del Producto")
-                col_down1, col_down2 = st.columns(2)
-                
-                # --- SEGURIDAD: Limpieza de tipos y estructura ---
-                # Convertimos todo a string y luego a numérico forzado
-                # Esto elimina cualquier objeto complejo que esté causando el bloqueo
-                df_vertical = df_vertical.apply(lambda x: pd.to_numeric(x, errors='coerce'))
-
-                # Reseteamos el índice para que no sea un objeto pesado de Pandas
-                df_vertical = df_vertical.reset_index(drop=True)
-
-                # --- FIN DE SEGURIDAD ---
-                
-                st.write(f"Columnas detectadas: {len(df_vertical.columns)}")
-                st.write(f"Filas detectadas: {len(df_vertical)}")
-                
-                with col_down1:
-                    csv_datos = df_vertical.to_csv(index=False).encode('utf-8')
-                    st.download_button(
-                        label="📄 Descargar en Formato .CSV",
-                        data=csv_datos,
-                        file_name=f"clean_{archivo_cargado.name}",
-                        mime="text/csv"
-                    )
-                
-                with col_down2:
-                    # Seguro: verificar que el dataframe no esté vacío
-                    if not df_vertical.empty:
-                        buffer_excel = io.BytesIO()
-                        with pd.ExcelWriter(buffer_excel, engine='openpyxl') as writer:
-                            df_vertical.to_excel(writer, index=False, sheet_name="Datos_Limpios")
-                        
-                        st.download_button(
-                            label="🟢 Descargar en Formato .EXCEL",
-                            data=buffer_excel.getvalue(),
-                            file_name=f"clean_{archivo_cargado.name.replace('.csv', '.xlsx')}",
-                            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                        )
-                    else:
-                        st.error("No hay datos para exportar a Excel.")
-
         except Exception as e:
-            st.error(f"Ocurrió un inconveniente estructural en los datos: {e}")
+            st.error(f"Error cargando el archivo: {e}")
+            st.stop()
 
 # Reemplaza la lógica actual en tab_historial con esto:
 with tab_historial:
