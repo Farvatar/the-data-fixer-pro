@@ -163,7 +163,7 @@ with tab_limpieza:
                 
                 st.write("### 📥 Panel de Descarga del Producto")
                 col_down1, col_down2 = st.columns(2)
-                
+                st.write(df_vertical.head())
                 with col_down1:
                     csv_datos = df_vertical.to_csv(index=False).encode('utf-8')
                     st.download_button(
