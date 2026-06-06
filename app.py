@@ -174,16 +174,20 @@ with tab_limpieza:
                     )
                 
                 with col_down2:
-                    buffer_excel = io.BytesIO()
-                    with pd.ExcelWriter(buffer_excel, engine='openpyxl') as writer:
-                        df_vertical.to_excel(writer, index=False, sheet_name="Datos_Limpios")
-                    
-                    st.download_button(
-                        label="🟢 Descargar en Formato .EXCEL",
-                        data=buffer_excel.getvalue(),
-                        file_name=f"clean_{archivo_cargado.name.replace('.csv', '.xlsx')}",
-                        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                    )
+                    # Seguro: verificar que el dataframe no esté vacío
+                    if not df_vertical.empty:
+                        buffer_excel = io.BytesIO()
+                        with pd.ExcelWriter(buffer_excel, engine='openpyxl') as writer:
+                            df_vertical.to_excel(writer, index=False, sheet_name="Datos_Limpios")
+                        
+                        st.download_button(
+                            label="🟢 Descargar en Formato .EXCEL",
+                            data=buffer_excel.getvalue(),
+                            file_name=f"clean_{archivo_cargado.name.replace('.csv', '.xlsx')}",
+                            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                        )
+                    else:
+                        st.error("No hay datos para exportar a Excel.")
 
         except Exception as e:
             st.error(f"Ocurrió un inconveniente estructural en los datos: {e}")
