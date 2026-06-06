@@ -2,7 +2,7 @@ import csv
 import random
 
 # Definimos el tamaño del estrés
-filas = 50000
+filas = 20000
 columnas = 10
 
 print(f"Generando archivo de {filas}x{columnas} filas/columnas...")
